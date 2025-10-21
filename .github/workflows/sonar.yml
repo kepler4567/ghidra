@@ -26,13 +26,13 @@ jobs:
           distribution: 'zulu'
           java-version: 17
 
-      # 3️⃣ Instala sonar-scanner CLI
+      # 3️⃣ Instalar sonar-scanner CLI (nova versão estável)
       - name: Install SonarScanner
         run: |
           mkdir -p $HOME/sonar-scanner
-          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.9.3.731-linux.zip
+          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-5.0.1.3006-linux.zip
           unzip sonar-scanner.zip -d $HOME/sonar-scanner
-          export PATH=$HOME/sonar-scanner/sonar-scanner-4.9.3.731-linux/bin:$PATH
+          export PATH=$HOME/sonar-scanner/sonar-scanner-5.0.1.3006-linux/bin:$PATH
           sonar-scanner --version
 
       # 4️⃣ Cache do SonarCloud
@@ -43,18 +43,18 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      # 5️⃣ Preparar pastas Java para análise
+      # 5️⃣ Definir pastas Java (módulos multiplataforma do Ghidra)
       - name: Prepare Java source directories
         run: |
-          # Escolhe apenas os módulos Java multiplataforma
           export SONAR_SOURCES="Ghidra/Framework/GhidraFramework,Ghidra/Framework/SoftwareModeling,Ghidra/Framework/Utility,Ghidra/Features/Base,Ghidra/Features/BytePatterns,Ghidra/Features/FileFormats"
-          echo "SONAR_SOURCES=$SONAR_SOURCES"
+          echo "SONAR_SOURCES=$SONAR_SOURCES" >> $GITHUB_ENV
 
-      # 6️⃣ Rodar SonarScanner diretamente
+      # 6️⃣ Rodar SonarScanner diretamente (sem Gradle)
       - name: Run SonarScanner
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          export PATH=$HOME/sonar-scanner/sonar-scanner-5.0.1.3006-linux/bin:$PATH
           sonar-scanner \
             -Dsonar.projectKey=kepler4567_ghidra \
             -Dsonar.organization=kepler4567 \

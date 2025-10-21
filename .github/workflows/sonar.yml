@@ -37,15 +37,16 @@ jobs:
           echo "Fake local repo created to bypass Ghidra dependency check"
           ls -l
 
-      - name: Run SonarCloud analysis (only Java sources)
+      - name: Run SonarCloud analysis (Java submodules only)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
-          ./gradlew sonarqube \
+          cd Ghidra/Framework/Utility
+          ../../../../gradlew sonarqube \
             -Dsonar.projectKey=kepler4567_ghidra \
             -Dsonar.organization=kepler4567 \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.sources="Ghidra/Framework/GhidraFramework,Ghidra/Framework/SoftwareModeling,Ghidra/Framework/Utility,Ghidra/Features/Base,Ghidra/Features/BytePatterns,Ghidra/Features/FileFormats" \
             -x test -x compileJava
+

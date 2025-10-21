@@ -39,7 +39,9 @@ jobs:
       - name: Build with Gradle
         run: |
           export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
+          ./gradlew --init-script gradle/support/fetchDependencies.gradle init
           ./gradlew build --no-daemon
+
 
       - name: Analyze with SonarCloud
         env:

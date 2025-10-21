@@ -1,4 +1,5 @@
-name: SonarQube
+name: SonarCloud Analysis (Ghidra Java Only)
+
 on:
   push:
     branches:
@@ -7,22 +8,34 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  analyze:
-    name: Static Analysis (SonarCloud)
+  sonar-analysis:
+    name: SonarCloud Analysis
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      # 1️⃣ Checkout do código
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2️⃣ Setup do Java
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: 17
 
+      # 3️⃣ Instala sonar-scanner CLI
+      - name: Install SonarScanner
+        run: |
+          mkdir -p $HOME/sonar-scanner
+          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.9.3.731-linux.zip
+          unzip sonar-scanner.zip -d $HOME/sonar-scanner
+          export PATH=$HOME/sonar-scanner/sonar-scanner-4.9.3.731-linux/bin:$PATH
+          sonar-scanner --version
+
+      # 4️⃣ Cache do SonarCloud
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
@@ -30,32 +43,23 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Prepare environment
+      # 5️⃣ Preparar pastas Java para análise
+      - name: Prepare Java source directories
         run: |
-          export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
-          echo "# Dummy repo config" > ghidra.repos.config
-          echo "Fake local repo created to bypass Ghidra dependency check"
-          
-          echo "Overriding settings.gradle with minimal modules..."
-          cat > settings.gradle <<'EOF'
-          rootProject.name = "ghidra-minimal"
-          include("Ghidra/Framework/Utility")
-          include("Ghidra/Framework/SoftwareModeling")
-          include("Ghidra/Features/Base")
-          EOF
-          
-          echo "Contents of new settings.gradle:"
-          cat settings.gradle
+          # Escolhe apenas os módulos Java multiplataforma
+          export SONAR_SOURCES="Ghidra/Framework/GhidraFramework,Ghidra/Framework/SoftwareModeling,Ghidra/Framework/Utility,Ghidra/Features/Base,Ghidra/Features/BytePatterns,Ghidra/Features/FileFormats"
+          echo "SONAR_SOURCES=$SONAR_SOURCES"
 
-      - name: Run SonarCloud analysis (Java modules only)
+      # 6️⃣ Rodar SonarScanner diretamente
+      - name: Run SonarScanner
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
-          $GITHUB_WORKSPACE/gradlew sonarqube \
+          sonar-scanner \
             -Dsonar.projectKey=kepler4567_ghidra \
             -Dsonar.organization=kepler4567 \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.sources="Ghidra/Framework/Utility,Ghidra/Framework/SoftwareModeling,Ghidra/Features/Base" \
-            -x test -x compileJava
+            -Dsonar.sources=$SONAR_SOURCES \
+            -Dsonar.java.binaries="" \
+            -Dsonar.sourceEncoding=UTF-8

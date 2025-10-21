@@ -50,16 +50,17 @@ jobs:
           echo "SONAR_SOURCES=$SONAR_SOURCES" >> $GITHUB_ENV
 
       # 6️⃣ Rodar SonarScanner diretamente (sem Gradle)
-      - name: Run SonarScanner
+      - name: Run SonarScanner via Docker
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          export PATH=$HOME/sonar-scanner/sonar-scanner-5.0.1.3006-linux/bin:$PATH
-          sonar-scanner \
+          docker run --rm \
+            -e SONAR_HOST_URL="https://sonarcloud.io" \
+            -e SONAR_TOKEN="${{ secrets.SONAR_TOKEN }}" \
+            -v "${GITHUB_WORKSPACE}:/usr/src" \
+            sonarsource/sonar-scanner-cli \
             -Dsonar.projectKey=kepler4567_ghidra \
             -Dsonar.organization=kepler4567 \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.sources=$SONAR_SOURCES \
+            -Dsonar.sources="Ghidra/Framework/GhidraFramework,Ghidra/Framework/SoftwareModeling,Ghidra/Framework/Utility,Ghidra/Features/Base,Ghidra/Features/BytePatterns,Ghidra/Features/FileFormats" \
             -Dsonar.java.binaries="" \
             -Dsonar.sourceEncoding=UTF-8

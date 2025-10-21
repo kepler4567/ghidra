@@ -36,12 +36,11 @@ jobs:
           key: ${{ runner.os }}-gradle
           restore-keys: ${{ runner.os }}-gradle
 
-      - name: Build with Gradle
+      - name: Build with Gradle (official Ghidra method)
         run: |
           export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
           ./gradlew --init-script gradle/support/fetchDependencies.gradle init
-          ./gradlew build --no-daemon
-
+          ./gradlew --init-script gradle/support/buildGhidraJar.gradle buildGhidra --no-daemon
 
       - name: Analyze with SonarCloud
         env:

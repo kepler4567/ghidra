@@ -19,26 +19,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 2️⃣ Explorar a estrutura do repositório
-      - name: Explore repository structure
-        run: |
-          echo "=== Estrutura do repositório ==="
-          find . -type d -name "*Ghidra*" | sort
-          echo "=== Conteúdo do diretório raiz ==="
-          ls -la
-          echo "=== Verificando se existem as pastas especificadas ==="
-          [ -d "Ghidra/Framework/GhidraFramework" ] && echo "✓ GhidraFramework existe" || echo "✗ GhidraFramework NÃO existe"
-          [ -d "Ghidra/Framework/SoftwareModeling" ] && echo "✓ SoftwareModeling existe" || echo "✗ SoftwareModeling NÃO existe"
-          [ -d "Ghidra/Framework/Utility" ] && echo "✓ Utility existe" || echo "✗ Utility NÃO existe"
-
-      # 3️⃣ Setup do Java
+      # 2️⃣ Setup do Java
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: 17
 
-      # 4️⃣ Cache do SonarCloud
+      # 3️⃣ Tentar compilar o projeto Ghidra
+      - name: Build Ghidra
+        run: |
+          echo "Tentando compilar o Ghidra..."
+          # Verificar se existe build.gradle ou outro arquivo de build
+          if [ -f "build.gradle" ]; then
+            ./gradlew classes --no-daemon || echo "Gradle build falhou, continuando sem binários"
+          elif [ -f "pom.xml" ]; then
+            mvn compile -DskipTests || echo "Maven build falhou, continuando sem binários"
+          else
+            echo "Nenhum sistema de build encontrado, procurando por scripts de build"
+            find . -name "build.sh" -executable -exec {} \; || echo "Build script não encontrado ou falhou"
+          fi
+
+      # 4️⃣ Encontrar arquivos compilados
+      - name: Find compiled classes
+        id: find-classes
+        run: |
+          echo "Procurando por arquivos .class..."
+          find . -name "*.class" -type f | head -20
+          CLASSES_DIR=$(find . -type d -name "classes" | head -1 || echo "")
+          BUILD_DIR=$(find . -type d -name "build" | head -1 || echo "")
+          TARGET_DIR=$(find . -type d -name "target" | head -1 || echo "")
+          
+          if [ -n "$CLASSES_DIR" ]; then
+            echo "classes_dir=$CLASSES_DIR" >> $GITHUB_OUTPUT
+          elif [ -n "$BUILD_DIR" ]; then
+            echo "classes_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+          elif [ -n "$TARGET_DIR" ]; then
+            echo "classes_dir=$TARGET_DIR" >> $GITHUB_OUTPUT
+          else
+            echo "classes_dir=" >> $GITHUB_OUTPUT
+          fi
+
+      # 5️⃣ Cache do SonarCloud
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
@@ -46,7 +68,7 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      # 5️⃣ Análise SonarCloud com estrutura dinâmica
+      # 6️⃣ Análise SonarCloud
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
@@ -58,6 +80,7 @@ jobs:
             -Dsonar.organization=kepler4567
             -Dsonar.sources=.
             -Dsonar.inclusions=**/*.java
-            -Dsonar.exclusions=**/test/**,**/Test/**,**/tests/**,**/Tests/**,**/*Test.java,**/*Tests.java
-            -Dsonar.java.binaries=""
+            -Dsonar.exclusions=**/test/**,**/Test/**,**/tests/**,**/Tests/**,**/*Test.java,**/*Tests.java,**/build/**,**/target/**,**/out/**
+            -Dsonar.java.binaries=${{ steps.find-classes.outputs.classes_dir }}
             -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.java.ignoreUnnamedModuleForSplitPackage=true

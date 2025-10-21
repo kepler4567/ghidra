@@ -37,12 +37,15 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle
 
       - name: Build with Gradle
-        run: ./gradlew build --no-daemon
+        run: |
+          export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
+          ./gradlew build --no-daemon
 
       - name: Analyze with SonarCloud
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
           ./gradlew sonarqube \
             -Dsonar.projectKey=kepler4567_ghidra \
             -Dsonar.organization=kepler4567 \

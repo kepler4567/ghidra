@@ -35,18 +35,27 @@ jobs:
           export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
           echo "# Dummy repo config" > ghidra.repos.config
           echo "Fake local repo created to bypass Ghidra dependency check"
-          ls -l
+          
+          echo "Overriding settings.gradle with minimal modules..."
+          cat > settings.gradle <<'EOF'
+          rootProject.name = "ghidra-minimal"
+          include("Ghidra/Framework/Utility")
+          include("Ghidra/Framework/SoftwareModeling")
+          include("Ghidra/Features/Base")
+          EOF
+          
+          echo "Contents of new settings.gradle:"
+          cat settings.gradle
 
-      - name: Run SonarCloud analysis (Java submodules only)
+      - name: Run SonarCloud analysis (Java modules only)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
-          cd Ghidra/Framework/Utility
           $GITHUB_WORKSPACE/gradlew sonarqube \
             -Dsonar.projectKey=kepler4567_ghidra \
             -Dsonar.organization=kepler4567 \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.sources="Ghidra/Framework/Utility,Ghidra/Framework/SoftwareModeling,Ghidra/Features/Base" \
             -x test -x compileJava
-

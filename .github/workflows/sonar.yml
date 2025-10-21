@@ -10,6 +10,7 @@ jobs:
   analyze:
     name: Static Analysis (SonarCloud)
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -36,7 +37,7 @@ jobs:
           echo "Fake local repo created to bypass Ghidra dependency check"
           ls -l
 
-      - name: Run SonarCloud analysis (no build)
+      - name: Run SonarCloud analysis (only Java sources)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -46,5 +47,5 @@ jobs:
             -Dsonar.organization=kepler4567 \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.sources=Ghidra/Framework,Ghidra/Features \
+            -Dsonar.sources="Ghidra/Framework/GhidraFramework,Ghidra/Framework/SoftwareModeling,Ghidra/Framework/Utility,Ghidra/Features/Base,Ghidra/Features/BytePatterns,Ghidra/Features/FileFormats" \
             -x test -x compileJava

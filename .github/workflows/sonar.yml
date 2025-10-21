@@ -43,7 +43,7 @@ jobs:
         run: |
           export GHIDRA_INSTALL_DIR=$GITHUB_WORKSPACE
           cd Ghidra/Framework/Utility
-          ../../../../gradlew sonarqube \
+          $GITHUB_WORKSPACE/gradlew sonarqube \
             -Dsonar.projectKey=kepler4567_ghidra \
             -Dsonar.organization=kepler4567 \
             -Dsonar.host.url=https://sonarcloud.io \
